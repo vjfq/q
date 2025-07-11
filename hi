@@ -72,4 +72,3 @@ try {
 }
 
 Write-Output "File successfully sent and cleaned up."
-exit 0
