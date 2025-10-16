@@ -1,1 +1,2 @@
-Write-Host "I AM ALIVE"
+Add-Type -AssemblyName PresentationFramework
+[System.Windows.MessageBox]::Show("I AM ALIVE","PowerShell")
